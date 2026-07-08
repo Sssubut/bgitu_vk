@@ -92,6 +92,7 @@ export interface Application {
   studentGroup: string;
   studentCourse: number;
   resumeFileName?: string;
+  resumeFileData?: string;
   resumeText?: string;
   coverLetter?: string;
   status: ApplicationStatus;
@@ -109,6 +110,7 @@ export interface StudentProfile {
   phone: string;
   password?: string;
   resumeFileName?: string;
+  resumeFileData?: string;
   resumeText?: string;
 }
 

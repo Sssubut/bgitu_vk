@@ -32,7 +32,7 @@ function formatFIO(fullName: string): string {
 }
 import { 
   Search, Filter, Briefcase, Calendar, MapPin, Coins, BookOpen, 
-  CheckCircle, ArrowRight, User, Upload, FileText, Check, AlertCircle, Clock, Bell
+  CheckCircle, ArrowRight, User, Upload, FileText, Check, AlertCircle, Clock
 } from 'lucide-react';
 
 interface StudentDashboardProps {
@@ -40,7 +40,7 @@ interface StudentDashboardProps {
   applications: Application[];
   studentProfile: StudentProfile | null;
   onUpdateProfile?: (profile: StudentProfile) => void;
-  onApply: (vacancyId: string, coverLetter: string, resumeFile?: File | null) => void;
+  onApply: (vacancyId: string, coverLetter: string, resumeFileData?: string) => void;
   onLoginPrompt?: () => void;
   requestedTab?: 'catalog' | 'profile' | null;
   onTabHandled?: () => void;
@@ -71,18 +71,15 @@ export default function StudentDashboard({
   const [selectedVacancy, setSelectedVacancy] = React.useState<Vacancy | null>(null);
   const [coverLetter, setCoverLetter] = React.useState('');
   const [uploadedFileName, setUploadedFileName] = React.useState<string | null>(null);
+  const [uploadedFileData, setUploadedFileData] = React.useState<string | null>(null);
   const [applySuccess, setApplySuccess] = React.useState(false);
   const [dragActive, setDragActive] = React.useState(false);
+  const [fileError, setFileError] = React.useState<string | null>(null);
 
   // Resume state in profile edit
   const [isEditingProfile, setIsEditingProfile] = React.useState(false);
   const [editedPhone, setEditedPhone] = React.useState(studentProfile ? studentProfile.phone : '');
   const [editedResume, setEditedResume] = React.useState(studentProfile ? (studentProfile.resumeText || '') : '');
-
-  // Subscription Settings state
-  const [subscribingIT, setSubscribingIT] = React.useState(true);
-  const [subscribingInternships, setSubscribingInternships] = React.useState(true);
-  const [subStatus, setSubStatus] = React.useState<'idle' | 'saved'>('idle');
 
   const myApplications = React.useMemo(
     () => applications.filter(app => app.studentEmail === studentProfile?.email),
@@ -136,6 +133,19 @@ export default function StudentDashboard({
     return matchesSearch && matchesType && matchesFaculty && matchesSchedule && matchesCompatibility;
   });
 
+  const readFileAsDataURL = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError('Файл слишком большой (максимум 5MB)');
+      setTimeout(() => setFileError(null), 3000);
+      return;
+    }
+    setFileError(null);
+    setUploadedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setUploadedFileData(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   // Handle uploader
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -152,25 +162,26 @@ export default function StudentDashboard({
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setUploadedFileName(e.dataTransfer.files[0].name);
+      readFileAsDataURL(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setUploadedFileName(e.target.files[0].name);
+      readFileAsDataURL(e.target.files[0]);
     }
   };
 
   const triggerApply = () => {
     if (!selectedVacancy) return;
-    onApply(selectedVacancy.id, coverLetter);
+    onApply(selectedVacancy.id, coverLetter, uploadedFileData || undefined);
     setApplySuccess(true);
     setTimeout(() => {
       setApplySuccess(false);
       setSelectedVacancy(null);
       setCoverLetter('');
       setUploadedFileName(null);
+      setUploadedFileData(null);
     }, 2000);
   };
 
@@ -180,14 +191,10 @@ export default function StudentDashboard({
       ...studentProfile,
       phone: editedPhone,
       resumeText: editedResume,
-      resumeFileName: uploadedFileName || studentProfile.resumeFileName || ''
+      resumeFileName: uploadedFileName || studentProfile.resumeFileName || '',
+      resumeFileData: uploadedFileData || studentProfile.resumeFileData
     });
     setIsEditingProfile(false);
-  };
-
-  const saveSubscription = () => {
-    setSubStatus('saved');
-    setTimeout(() => setSubStatus('idle'), 2000);
   };
 
   const getFacultyBadgeColor = (fac: Faculty) => {
@@ -261,22 +268,7 @@ export default function StudentDashboard({
             </p>
           </div>
           
-          {studentProfile && (
-            <div className="flex gap-2">
-              <button
-                id="tab-profile-btn"
-                onClick={() => setActiveTab(activeTab === 'profile' ? 'catalog' : 'profile')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                  activeTab === 'profile' 
-                    ? 'bg-white text-slate-950 shadow-sm border border-white' 
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-transparent'
-                }`}
-              >
-                <User className="h-3.5 w-3.5" />
-                <span>{activeTab === 'profile' ? 'Вернуться к вакансиям' : `Личный кабинет (${applications.length})`}</span>
-              </button>
-            </div>
-          )}
+
         </div>
       </div>
 
@@ -568,8 +560,21 @@ export default function StudentDashboard({
                           <span>Отправлен: {new Date(app.createdAt).toLocaleDateString('ru-RU')}</span>
                           {app.resumeFileName && (
                             <span className="flex items-center gap-1">
-                              <FileText className="h-3 w-3 text-slate-400" />
-                              Резюме: {app.resumeFileName}
+                              {app.resumeFileData ? (
+                                <a
+                                  href={app.resumeFileData}
+                                  download={app.resumeFileName}
+                                  className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline"
+                                >
+                                  <FileText className="h-3 w-3 shrink-0" />
+                                  📎 {app.resumeFileName}
+                                </a>
+                              ) : (
+                                <>
+                                  <FileText className="h-3 w-3 shrink-0" />
+                                  Резюме: {app.resumeFileName}
+                                </>
+                              )}
                             </span>
                           )}
                         </div>
@@ -593,12 +598,7 @@ export default function StudentDashboard({
               ) : (
                 <div className="text-center py-10">
                   <p className="text-slate-400 text-sm">Вы ещё не откликались на вакансии.</p>
-                  <button
-                    onClick={() => setActiveTab('catalog')}
-                    className="mt-4 text-xs bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors"
-                  >
-                    Перейти в каталог вакансий
-                  </button>
+
                 </div>
               )}
             </div>
@@ -634,6 +634,22 @@ export default function StudentDashboard({
                       className="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     ></textarea>
                   </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 block mb-1">Файл резюме (PDF/DOCX)</label>
+                    <label className="flex items-center gap-2 text-xs text-slate-600 border border-dashed border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:border-indigo-300 transition-colors">
+                      <Upload className="h-4 w-4 text-slate-400" />
+                      <span>{uploadedFileName || 'Выберите файл...'}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.doc"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                    {fileError && (
+                      <span className="text-[10px] text-red-600 font-semibold mt-1 block">{fileError}</span>
+                    )}
+                  </div>
                   <div className="flex gap-2 pt-2">
                     <button
                       id="save-profile-btn"
@@ -654,10 +670,21 @@ export default function StudentDashboard({
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <span className="text-xs font-semibold text-slate-400 block">Загруженный файл:</span>
-                    <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full">
-                      <FileText className="h-4 w-4" />
-                      {studentProfile?.resumeFileName || 'Резюме не прикреплено'}
-                    </span>
+                    {studentProfile?.resumeFileData ? (
+                      <a
+                        href={studentProfile.resumeFileData}
+                        download={studentProfile.resumeFileName || 'resume'}
+                        className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full hover:bg-indigo-100 transition-colors"
+                      >
+                        <FileText className="h-4 w-4 shrink-0" />
+                        📎 {studentProfile?.resumeFileName || 'Резюме'}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full">
+                        <FileText className="h-4 w-4" />
+                        {studentProfile?.resumeFileName || 'Резюме не прикреплено'}
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -683,54 +710,11 @@ export default function StudentDashboard({
                 </div>
               )}
             </div>
-
-            {/* Notification Subscription Setup */}
-            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <Bell className="h-4 w-4 text-slate-500" />
-                Настройка подписки на новые вакансии
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Получайте рассылку на почту <strong className="text-slate-600">{studentProfile?.email || ''}</strong> по заданным критериям вуза.
-              </p>
-
-              <div className="space-y-2 pt-2">
-                <label className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={subscribingIT}
-                    onChange={(e) => setSubscribingIT(e.target.checked)}
-                    className="rounded text-indigo-600"
-                  />
-                  <span>Все IT-вакансии для моего факультета</span>
-                </label>
-                <label className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={subscribingInternships}
-                    onChange={(e) => setSubscribingInternships(e.target.checked)}
-                    className="rounded text-indigo-600"
-                  />
-                  <span>Стажировки и практики для 3 курса</span>
-                </label>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between">
-                <button
-                  id="save-subscription-btn"
-                  onClick={saveSubscription}
-                  className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer transition-colors"
-                >
-                  {subStatus === 'saved' ? '✓ Сохранено!' : 'Сохранить настройки'}
-                </button>
-              </div>
-            </div>
           </div>
 
         </div>
       )}
 
-      {/* DETAILED VACANCY MODAL OVERLAY */}
       {selectedVacancy && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs" id="job-detail-modal">
           <div className="bg-white rounded-2xl border border-slate-100 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
@@ -892,7 +876,13 @@ export default function StudentDashboard({
                         <div className="p-3 border border-indigo-200 rounded-lg bg-indigo-50/25 space-y-1 flex flex-col justify-between">
                           <div>
                             <span className="font-bold text-xs text-indigo-900 block">По умолчанию из ЭОС</span>
-                            <span className="text-[10px] text-indigo-600 block leading-snug">Прикрепится ваше резюме: {studentProfile.resumeFileName}</span>
+                            <span className="text-[10px] text-indigo-600 block leading-snug">
+                              {studentProfile.resumeFileData ? (
+                                <>Прикрепится ваше резюме: <a href={studentProfile.resumeFileData} download={studentProfile.resumeFileName} className="underline">{studentProfile.resumeFileName}</a></>
+                              ) : (
+                                <>Прикрепится ваше резюме: {studentProfile.resumeFileName}</>
+                              )}
+                            </span>
                           </div>
                           <span className="text-[10px] text-indigo-500 italic block mt-1">✓ Выбрано по умолчанию</span>
                         </div>

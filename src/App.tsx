@@ -49,6 +49,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalRole, setAuthModalRole] = useState<UserRole>('student');
   const [showQuickPanel, setShowQuickPanel] = useState(true);
+  const [showLoginDropdown, setShowLoginDropdown] = useState(false);
   const [requestedTab, setRequestedTab] = useState<'catalog' | 'profile' | null>(null);
   const [studentActiveTab, setStudentActiveTab] = useState<'catalog' | 'profile'>('catalog');
 
@@ -180,7 +181,7 @@ export default function App() {
   };
 
   // Handle student quick apply
-  const handleApply = (vacancyId: string, coverLetter: string) => {
+  const handleApply = (vacancyId: string, coverLetter: string, resumeFileData?: string) => {
     const matchedVacancy = vacancies.find(v => v.id === vacancyId);
     if (!matchedVacancy) return;
 
@@ -198,6 +199,7 @@ export default function App() {
       studentGroup: studentProfile.group,
       studentCourse: studentProfile.course,
       resumeFileName: studentProfile.resumeFileName,
+      resumeFileData: resumeFileData || studentProfile.resumeFileData,
       resumeText: studentProfile.resumeText,
       coverLetter: coverLetter || undefined,
       status: 'new',
@@ -323,7 +325,7 @@ export default function App() {
                 <span>Вакансии</span>
               </button>
             )}
-            {!loggedStudentEmail && !isModeratorLoggedIn && (
+            {loggedCompanyId && (
               <button
                 onClick={() => setRole('employer')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -336,7 +338,7 @@ export default function App() {
                 <span>Работодателям</span>
               </button>
             )}
-            {!loggedStudentEmail && !loggedCompanyId && (
+            {isModeratorLoggedIn && (
               <button
                 onClick={() => setRole('moderator')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -366,7 +368,7 @@ export default function App() {
             {loggedStudentEmail && (
               <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-6" id="header-student-profile-info">
                 <button
-                  onClick={() => setRequestedTab('profile')}
+                  onClick={() => { setRole('student'); setRequestedTab('profile'); }}
                   className="flex items-center gap-3 cursor-pointer text-left"
                 >
                   <div className="text-right">
@@ -394,17 +396,39 @@ export default function App() {
               </div>
             )}
 
-            {role === 'student' && !loggedStudentEmail && (
-              <div className="hidden md:flex items-center gap-3">
+            {!loggedStudentEmail && !loggedCompanyId && !isModeratorLoggedIn && (
+              <div className="hidden md:flex items-center gap-3 relative">
                 <button
-                  onClick={() => {
-                    setAuthModalRole('student');
-                    setShowAuthModal(true);
-                  }}
+                  onClick={() => setShowLoginDropdown(!showLoginDropdown)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
                 >
-                  Войти в кабинет
+                  Войти
                 </button>
+                {showLoginDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowLoginDropdown(false)} />
+                    <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 min-w-[180px]">
+                      <button
+                        onClick={() => { setAuthModalRole('student'); setShowAuthModal(true); setShowLoginDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      >
+                        <GraduationCap className="h-4 w-4" /> Студент
+                      </button>
+                      <button
+                        onClick={() => { setAuthModalRole('employer'); setShowAuthModal(true); setShowLoginDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      >
+                        <Briefcase className="h-4 w-4" /> Работодатель
+                      </button>
+                      <button
+                        onClick={() => { setAuthModalRole('moderator'); setShowAuthModal(true); setShowLoginDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      >
+                        <ShieldCheck className="h-4 w-4" /> Модератор
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -502,7 +526,7 @@ export default function App() {
             <span>Вакансии</span>
           </button>
         )}
-        {!loggedStudentEmail && !isModeratorLoggedIn && (
+        {loggedCompanyId && (
           <button
             onClick={() => setRole('employer')}
             className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
@@ -513,7 +537,7 @@ export default function App() {
             <span>Работодателям</span>
           </button>
         )}
-        {!loggedStudentEmail && !loggedCompanyId && (
+        {isModeratorLoggedIn && (
           <button
             onClick={() => setRole('moderator')}
             className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
