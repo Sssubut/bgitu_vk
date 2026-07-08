@@ -1,5 +1,6 @@
 import React from 'react';
 import { Vacancy, Application, Company, Faculty, EmploymentType, JobSchedule } from '../types';
+import { renderMd } from './MarkdownRenderer';
 import { 
   Plus, Briefcase, Eye, Users, Calendar, AlertCircle, Clock, Coins, 
   CheckSquare, FileText, Send, User, ChevronRight, CheckCircle, XCircle, 
@@ -507,8 +508,12 @@ export default function EmployerDashboard({
                     <FileText className="h-4 w-4 text-emerald-500" />
                     Текст прикрепленного резюме:
                   </h4>
-                  <div className="text-xs text-slate-700 bg-slate-50 p-4 rounded-lg border border-slate-150 whitespace-pre-line leading-relaxed max-h-56 overflow-y-auto font-sans">
-                    {selectedApp.resumeText || 'Файл резюме пуст или не содержит текстового описания.'}
+                  <div className="md-content text-slate-700 bg-slate-50 p-4 rounded-lg border border-slate-150 leading-relaxed max-h-56 overflow-y-auto">
+                    {selectedApp.resumeText ? (
+                      <div dangerouslySetInnerHTML={{ __html: renderMd(selectedApp.resumeText) }} />
+                    ) : (
+                      <p className="m-0">Файл резюме пуст или не содержит текстового описания.</p>
+                    )}
                   </div>
                   {selectedApp.resumeFileName && (
                     <span className="text-[10px] text-slate-400 block font-mono">

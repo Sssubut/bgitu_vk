@@ -112,7 +112,7 @@ export default function AuthScreen({
       email: email,
       phone: stPhone,
       password: stPassword,
-      resumeFileName: 'Resume_Draft.pdf',
+      resumeFileName: 'Resume.md',
       resumeText: `Студент ${stCourse} курса направления подготовки ${stFaculty}. Ищу стажировку/практику.`
     };
 

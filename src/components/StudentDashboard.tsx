@@ -1,5 +1,6 @@
 import React from 'react';
 import { Vacancy, Application, StudentProfile, Faculty, EmploymentType, JobSchedule } from '../types';
+import { renderMd } from './MarkdownRenderer';
 
 function formatFIO(fullName: string): string {
   if (!fullName) return '';
@@ -73,13 +74,13 @@ export default function StudentDashboard({
   const [uploadedFileName, setUploadedFileName] = React.useState<string | null>(null);
   const [uploadedFileData, setUploadedFileData] = React.useState<string | null>(null);
   const [applySuccess, setApplySuccess] = React.useState(false);
-  const [dragActive, setDragActive] = React.useState(false);
   const [fileError, setFileError] = React.useState<string | null>(null);
 
   // Resume state in profile edit
   const [isEditingProfile, setIsEditingProfile] = React.useState(false);
   const [editedPhone, setEditedPhone] = React.useState(studentProfile ? studentProfile.phone : '');
   const [editedResume, setEditedResume] = React.useState(studentProfile ? (studentProfile.resumeText || '') : '');
+  const [resumeSource, setResumeSource] = React.useState<'manual' | 'file'>('manual');
 
   const myApplications = React.useMemo(
     () => applications.filter(app => app.studentEmail === studentProfile?.email),
@@ -133,7 +134,9 @@ export default function StudentDashboard({
     return matchesSearch && matchesType && matchesFaculty && matchesSchedule && matchesCompatibility;
   });
 
-  const readFileAsDataURL = (file: File) => {
+  const handleMdFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       setFileError('Файл слишком большой (максимум 5MB)');
       setTimeout(() => setFileError(null), 3000);
@@ -141,47 +144,22 @@ export default function StudentDashboard({
     }
     setFileError(null);
     setUploadedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => setUploadedFileData(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  // Handle uploader
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      readFileAsDataURL(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      readFileAsDataURL(e.target.files[0]);
-    }
+    const textReader = new FileReader();
+    textReader.onload = () => setEditedResume(textReader.result as string);
+    textReader.readAsText(file);
+    const dataReader = new FileReader();
+    dataReader.onload = () => setUploadedFileData(dataReader.result as string);
+    dataReader.readAsDataURL(file);
   };
 
   const triggerApply = () => {
     if (!selectedVacancy) return;
-    onApply(selectedVacancy.id, coverLetter, uploadedFileData || undefined);
+    onApply(selectedVacancy.id, coverLetter);
     setApplySuccess(true);
     setTimeout(() => {
       setApplySuccess(false);
       setSelectedVacancy(null);
       setCoverLetter('');
-      setUploadedFileName(null);
-      setUploadedFileData(null);
     }, 2000);
   };
 
@@ -608,7 +586,7 @@ export default function StudentDashboard({
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-5">
               <h2 className="text-base font-bold text-slate-900 tracking-tight border-b border-slate-150 pb-2">
-                📂 Резюме и подписки (ЭОС)
+                📂 Резюме
               </h2>
 
               {isEditingProfile ? (
@@ -623,33 +601,74 @@ export default function StudentDashboard({
                       className="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 bg-white"
                     />
                   </div>
+
                   <div>
-                    <label className="text-xs font-semibold text-slate-500 block mb-1">Текст резюме</label>
-                    <textarea
-                      id="edit-profile-resume-text"
-                      rows={6}
-                      value={editedResume}
-                      onChange={(e) => setEditedResume(e.target.value)}
-                      placeholder="Расскажите о своих навыках, технологиях, опыте учебных проектов..."
-                      className="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    ></textarea>
+                    <label className="text-xs font-semibold text-slate-500 block mb-1">Источник резюме</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setResumeSource('manual')}
+                        className={`flex-1 text-xs font-bold px-3 py-2 rounded-lg transition-all cursor-pointer ${
+                          resumeSource === 'manual'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        ✏️ Написать вручную
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setResumeSource('file')}
+                        className={`flex-1 text-xs font-bold px-3 py-2 rounded-lg transition-all cursor-pointer ${
+                          resumeSource === 'file'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        📄 Загрузить README.md
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-500 block mb-1">Файл резюме (PDF/DOCX)</label>
-                    <label className="flex items-center gap-2 text-xs text-slate-600 border border-dashed border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:border-indigo-300 transition-colors">
-                      <Upload className="h-4 w-4 text-slate-400" />
-                      <span>{uploadedFileName || 'Выберите файл...'}</span>
-                      <input
-                        type="file"
-                        accept=".pdf,.docx,.doc"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    {fileError && (
-                      <span className="text-[10px] text-red-600 font-semibold mt-1 block">{fileError}</span>
-                    )}
-                  </div>
+
+                  {resumeSource === 'manual' ? (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 block mb-1">Текст резюме</label>
+                      <textarea
+                        id="edit-profile-resume-text"
+                        rows={8}
+                        value={editedResume}
+                        onChange={(e) => setEditedResume(e.target.value)}
+                        placeholder="Расскажите о своих навыках, технологиях, опыте учебных проектов..."
+                        className="w-full text-xs rounded-lg border border-slate-200 px-3 py-2 text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      ></textarea>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500 block mb-1">Файл README.md</label>
+                      <label className="flex items-center gap-2 text-xs text-slate-600 border border-dashed border-slate-200 rounded-lg px-3 py-2 cursor-pointer hover:border-indigo-300 transition-colors">
+                        <Upload className="h-4 w-4 text-slate-400" />
+                        <span>{uploadedFileName || 'Выберите .md файл...'}</span>
+                        <input
+                          type="file"
+                          accept=".md"
+                          className="hidden"
+                          onChange={handleMdFileUpload}
+                        />
+                      </label>
+                      {fileError && (
+                        <span className="text-[10px] text-red-600 font-semibold mt-1 block">{fileError}</span>
+                      )}
+                      {editedResume && resumeSource === 'file' && (
+                        <div className="mt-2">
+                          <span className="text-[10px] font-semibold text-slate-400 block mb-1">Предпросмотр содержимого:</span>
+                          <div className="md-content text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-150 leading-relaxed max-h-60 overflow-y-auto text-xs">
+                            <div dangerouslySetInnerHTML={{ __html: renderMd(editedResume) }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-2 pt-2">
                     <button
                       id="save-profile-btn"
@@ -669,29 +688,14 @@ export default function StudentDashboard({
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-400 block">Загруженный файл:</span>
-                    {studentProfile?.resumeFileData ? (
-                      <a
-                        href={studentProfile.resumeFileData}
-                        download={studentProfile.resumeFileName || 'resume'}
-                        className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full hover:bg-indigo-100 transition-colors"
-                      >
-                        <FileText className="h-4 w-4 shrink-0" />
-                        📎 {studentProfile?.resumeFileName || 'Резюме'}
-                      </a>
-                    ) : (
-                      <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full">
-                        <FileText className="h-4 w-4" />
-                        {studentProfile?.resumeFileName || 'Резюме не прикреплено'}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
                     <span className="text-xs font-semibold text-slate-400 block">Краткое резюме:</span>
-                    <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-150 leading-relaxed max-h-40 overflow-y-auto">
-                      {studentProfile?.resumeText || 'Ничего не заполнено.'}
-                    </p>
+                    <div className="md-content text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-150 leading-relaxed max-h-60 overflow-y-auto text-xs">
+                      {studentProfile?.resumeText ? (
+                        <div dangerouslySetInnerHTML={{ __html: renderMd(studentProfile.resumeText) }} />
+                      ) : (
+                        <p className="text-xs text-slate-400 m-0">Ничего не заполнено.</p>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -700,6 +704,7 @@ export default function StudentDashboard({
                       if (studentProfile) {
                         setEditedPhone(studentProfile.phone);
                         setEditedResume(studentProfile.resumeText || '');
+                        setResumeSource('manual');
                         setIsEditingProfile(true);
                       }
                     }}
@@ -866,56 +871,6 @@ export default function StudentDashboard({
                   <div className="space-y-4">
                     <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-lg text-[11px] text-indigo-950 leading-normal">
                       <strong>Автозаполнение вуза:</strong> При отправке отклика работодатель автоматически получит ваш профиль студента: <strong className="text-indigo-900">{studentProfile.name}</strong>, группа {studentProfile.group}, факультет {studentProfile.faculty}, курс {studentProfile.course}, email {studentProfile.email}.
-                    </div>
-
-                    {/* Resume Source selector */}
-                    <div>
-                      <span className="text-[11px] font-semibold text-slate-500 block mb-1">Файл резюме:</span>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Profile Resume */}
-                        <div className="p-3 border border-indigo-200 rounded-lg bg-indigo-50/25 space-y-1 flex flex-col justify-between">
-                          <div>
-                            <span className="font-bold text-xs text-indigo-900 block">По умолчанию из ЭОС</span>
-                            <span className="text-[10px] text-indigo-600 block leading-snug">
-                              {studentProfile.resumeFileData ? (
-                                <>Прикрепится ваше резюме: <a href={studentProfile.resumeFileData} download={studentProfile.resumeFileName} className="underline">{studentProfile.resumeFileName}</a></>
-                              ) : (
-                                <>Прикрепится ваше резюме: {studentProfile.resumeFileName}</>
-                              )}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-indigo-500 italic block mt-1">✓ Выбрано по умолчанию</span>
-                        </div>
-
-                        {/* File Uploader box */}
-                        <div 
-                          className={`p-3 border rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all ${
-                            dragActive ? 'border-indigo-600 bg-indigo-50/20' : 'border-dashed border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
-                          }`}
-                          onDragEnter={handleDrag}
-                          onDragLeave={handleDrag}
-                          onDragOver={handleDrag}
-                          onDrop={handleDrop}
-                        >
-                          <input 
-                            type="file" 
-                            id="resume-upload" 
-                            className="hidden" 
-                            accept=".pdf,.docx,.doc" 
-                            onChange={handleFileChange}
-                          />
-                          <label htmlFor="resume-upload" className="cursor-pointer text-center flex flex-col items-center">
-                            <Upload className="h-4 w-4 text-slate-400 mb-1" />
-                            <span className="font-semibold text-[10px] text-slate-700 block">Загрузить другой файл</span>
-                            <span className="text-[9px] text-slate-400 block leading-none mt-0.5">PDF/DOCX до 5MB</span>
-                          </label>
-                          {uploadedFileName && (
-                            <span className="text-[9px] text-emerald-600 font-semibold mt-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                              Файл: {uploadedFileName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
                     </div>
 
                     {/* Cover Letter text area */}
