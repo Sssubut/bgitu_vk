@@ -42,6 +42,9 @@ interface StudentDashboardProps {
   onUpdateProfile?: (profile: StudentProfile) => void;
   onApply: (vacancyId: string, coverLetter: string, resumeFile?: File | null) => void;
   onLoginPrompt?: () => void;
+  requestedTab?: 'catalog' | 'profile' | null;
+  onTabHandled?: () => void;
+  onStudentActiveTabChange?: (tab: 'catalog' | 'profile') => void;
 }
 
 export default function StudentDashboard({
@@ -50,7 +53,10 @@ export default function StudentDashboard({
   studentProfile,
   onUpdateProfile,
   onApply,
-  onLoginPrompt
+  onLoginPrompt,
+  requestedTab,
+  onTabHandled,
+  onStudentActiveTabChange
 }: StudentDashboardProps) {
   const [activeTab, setActiveTab] = React.useState<'catalog' | 'profile'>('catalog');
   
@@ -77,6 +83,22 @@ export default function StudentDashboard({
   const [subscribingIT, setSubscribingIT] = React.useState(true);
   const [subscribingInternships, setSubscribingInternships] = React.useState(true);
   const [subStatus, setSubStatus] = React.useState<'idle' | 'saved'>('idle');
+
+  const myApplications = React.useMemo(
+    () => applications.filter(app => app.studentEmail === studentProfile?.email),
+    [applications, studentProfile?.email]
+  );
+
+  React.useEffect(() => {
+    if (requestedTab) {
+      setActiveTab(requestedTab);
+      onTabHandled?.();
+    }
+  }, [requestedTab]);
+
+  React.useEffect(() => {
+    onStudentActiveTabChange?.(activeTab);
+  }, [activeTab]);
 
   // Sync state and handle logout redirection to catalog
   React.useEffect(() => {
@@ -393,7 +415,7 @@ export default function StudentDashboard({
             {filteredVacancies.length > 0 ? (
               <div className="space-y-4" id="vacancy-cards-list">
                 {filteredVacancies.map(v => {
-                  const alreadyApplied = applications.some(app => app.vacancyId === v.id);
+                  const alreadyApplied = applications.some(app => app.vacancyId === v.id && app.studentEmail === studentProfile?.email);
                   const isMatchingCourse = studentProfile ? (studentProfile.course >= v.requirements.courseFrom && studentProfile.course <= v.requirements.courseTo) : false;
                   const isMatchingFaculty = studentProfile ? (studentProfile.faculty === v.requirements.faculty) : false;
 
@@ -515,12 +537,12 @@ export default function StudentDashboard({
             <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4">
               <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2 border-b border-slate-150 pb-3">
                 <Briefcase className="h-5 w-5 text-indigo-500" />
-                История моих откликов ({applications.length})
+                История моих откликов ({myApplications.length})
               </h2>
 
-              {applications.length > 0 ? (
+              {myApplications.length > 0 ? (
                 <div className="space-y-4" id="applications-list">
-                  {applications.map(app => {
+                  {myApplications.map(app => {
                     const matchedVacancy = vacancies.find(v => v.id === app.vacancyId);
                     return (
                       <div 
@@ -845,7 +867,7 @@ export default function StudentDashboard({
                       Войти и откликнуться
                     </button>
                   </div>
-                ) : applications.some(app => app.vacancyId === selectedVacancy.id) ? (
+                ) : applications.some(app => app.vacancyId === selectedVacancy.id && app.studentEmail === studentProfile?.email) ? (
                   <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-xl text-center text-emerald-800">
                     <p className="font-bold text-xs flex items-center justify-center gap-1.5">
                       <CheckCircle className="h-4 w-4" /> Вы уже отправляли отклик на эту вакансию!

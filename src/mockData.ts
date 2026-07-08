@@ -1,14 +1,14 @@
 import { Vacancy, Company, Application, StudentProfile } from './types';
 
 export const INITIAL_STUDENT_PROFILE: StudentProfile = {
-  name: "Николай Залупов",
-  group: "ИВТ-301",
+  name: "Алексей Иванов",
+  group: "ПрИ-301",
   faculty: "IT",
   course: 3,
-  email: "zalupovnikolaj7@gmail.com",
-  phone: "+7 (999) 123-45-67",
+  email: "aleksey.ivanov@edu.ru",
+  phone: "+7 (999) 888-77-66",
   password: "student",
-  resumeFileName: "Nikolay_Zalupov_CV.pdf",
+  resumeFileName: "Ivanov_Aleksey_CV.pdf",
   resumeText: "Студент 3 курса направления 'Информатика и вычислительная техника'. Уверенные знания HTML, CSS, JavaScript, React, Tailwind CSS. Базовые навыки Node.js, Git. Опыт командной разработки учебных проектов. Ищу стажировку на лето."
 };
 
@@ -384,17 +384,17 @@ export const INITIAL_APPLICATIONS: Application[] = [
     vacancyTitle: "Стажёр Frontend-разработчик (React)",
     companyId: "yandex",
     companyName: "Яндекс",
-    studentName: "Николай Залупов",
-    studentEmail: "zalupovnikolaj7@gmail.com",
-    studentPhone: "+7 (999) 123-45-67",
+    studentName: "Алексей Иванов",
+    studentEmail: "aleksey.ivanov@edu.ru",
+    studentPhone: "+7 (999) 888-77-66",
     studentFaculty: "IT",
-    studentGroup: "ИВТ-301",
+    studentGroup: "ПрИ-301",
     studentCourse: 3,
-    resumeFileName: "Nikolay_Zalupov_CV.pdf",
+    resumeFileName: "Ivanov_Aleksey_CV.pdf",
     resumeText: "Студент 3 курса направления 'Информатика и вычислительная техника'. Уверенные знания HTML, CSS, JavaScript, React, Tailwind CSS. Ищу стажировку на лето.",
     coverLetter: "Здравствуйте! Буду очень рад пройти стажировку в команде Яндекса. Имею опыт учебных проектов на React и TypeScript, готов активно учиться и работать над реальными сервисами.",
     status: "invited", // Приглашен!
-    statusComment: "Николай, добрый день! Ваше резюме нас заинтересовало. Приглашаем вас на техническое собеседование в Zoom 8 июля в 15:00. Ссылка отправлена вам на почту.",
+    statusComment: "Алексей, добрый день! Ваше резюме нас заинтересовало. Приглашаем вас на техническое собеседование в Zoom 8 июля в 15:00. Ссылка отправлена вам на почту.",
     statusChangedAt: "2026-06-20",
     createdAt: "2026-06-16"
   },
@@ -404,13 +404,13 @@ export const INITIAL_APPLICATIONS: Application[] = [
     vacancyTitle: "Стажёр-аналитик данных (Python/SQL)",
     companyId: "tinkoff",
     companyName: "Т-Банк (Тинькофф)",
-    studentName: "Николай Залупов",
-    studentEmail: "zalupovnikolaj7@gmail.com",
-    studentPhone: "+7 (999) 123-45-67",
+    studentName: "Алексей Иванов",
+    studentEmail: "aleksey.ivanov@edu.ru",
+    studentPhone: "+7 (999) 888-77-66",
     studentFaculty: "IT",
-    studentGroup: "ИВТ-301",
+    studentGroup: "ПрИ-301",
     studentCourse: 3,
-    resumeFileName: "Nikolay_Zalupov_CV.pdf",
+    resumeFileName: "Ivanov_Aleksey_CV.pdf",
     resumeText: "Студент 3 курса направления 'Информатика и вычислительная техника'. Уверенные знания HTML, CSS, JavaScript, React, Tailwind CSS. Ищу стажировку на лето.",
     coverLetter: "Здравствуйте! Интересуюсь аналитикой данных. Знаю основы Python и умею писать несложные SQL-запросы SELECT/JOIN. Хотел бы применить свои математические навыки в Т-Банке.",
     status: "viewed", // Просмотрен

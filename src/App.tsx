@@ -49,6 +49,8 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalRole, setAuthModalRole] = useState<UserRole>('student');
   const [showQuickPanel, setShowQuickPanel] = useState(true);
+  const [requestedTab, setRequestedTab] = useState<'catalog' | 'profile' | null>(null);
+  const [studentActiveTab, setStudentActiveTab] = useState<'catalog' | 'profile'>('catalog');
 
   // List of registered student profiles
   const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>(() => {
@@ -308,18 +310,20 @@ export default function App() {
 
           {/* Desktop Navigation Tabs */}
           <nav className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-xl" id="portal-navigation">
-            <button
-              onClick={() => setRole('student')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                role === 'student' 
-                  ? 'bg-white text-blue-600 shadow-xs' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <GraduationCap className="h-3.5 w-3.5" />
-              <span>Вакансии</span>
-            </button>
-            {loggedCompanyId && (
+            {!loggedCompanyId && !isModeratorLoggedIn && (
+              <button
+                onClick={() => { setRole('student'); setRequestedTab('catalog'); }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  role === 'student' && studentActiveTab === 'catalog'
+                    ? 'bg-white text-blue-600 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <GraduationCap className="h-3.5 w-3.5" />
+                <span>Вакансии</span>
+              </button>
+            )}
+            {!loggedStudentEmail && !isModeratorLoggedIn && (
               <button
                 onClick={() => setRole('employer')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -332,7 +336,7 @@ export default function App() {
                 <span>Работодателям</span>
               </button>
             )}
-            {isModeratorLoggedIn && (
+            {!loggedStudentEmail && !loggedCompanyId && (
               <button
                 onClick={() => setRole('moderator')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -359,19 +363,24 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-6">
-            {role === 'student' && loggedStudentEmail && (
+            {loggedStudentEmail && (
               <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-6" id="header-student-profile-info">
-                <div className="text-right">
-                  <div className="text-xs font-bold text-slate-800">{formatFIO(studentProfile.name)}</div>
-                  <div className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
-                    {studentProfile.faculty === 'IT' ? 'ИТ-ФАКУЛЬТЕТ' : 
-                     studentProfile.faculty === 'Economy' ? 'ЭКОНОМИКА' : 
-                     studentProfile.faculty === 'Design' ? 'ДИЗАЙН' : 'ИНЖЕНЕРИЯ'} • {studentProfile.course} КУРС
+                <button
+                  onClick={() => setRequestedTab('profile')}
+                  className="flex items-center gap-3 cursor-pointer text-left"
+                >
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-slate-800">{formatFIO(studentProfile.name)}</div>
+                    <div className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+                      {studentProfile.faculty === 'IT' ? 'ИТ-ФАКУЛЬТЕТ' : 
+                       studentProfile.faculty === 'Economy' ? 'ЭКОНОМИКА' : 
+                       studentProfile.faculty === 'Design' ? 'ДИЗАЙН' : 'ИНЖЕНЕРИЯ'} • {studentProfile.course} КУРС
+                    </div>
                   </div>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs uppercase shadow-xs">
-                  {studentProfile.name[0]}
-                </div>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs uppercase shadow-xs">
+                    {studentProfile.name[0]}
+                  </div>
+                </button>
                 <button
                   onClick={() => {
                     setLoggedStudentEmail(null);
@@ -399,7 +408,7 @@ export default function App() {
               </div>
             )}
 
-            {role === 'employer' && loggedCompanyId && (
+            {loggedCompanyId && (
               <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-6" id="header-employer-profile-info">
                 <div className="text-right">
                   <div className="text-xs font-bold text-slate-800">{currentEmployerCompany.name}</div>
@@ -437,7 +446,7 @@ export default function App() {
               </div>
             )}
 
-            {role === 'moderator' && isModeratorLoggedIn && (
+            {isModeratorLoggedIn && (
               <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-6" id="header-moderator-profile-info">
                 <div className="text-right">
                   <div className="text-xs font-bold text-slate-800 font-sans">Центр Карьеры</div>
@@ -482,16 +491,18 @@ export default function App() {
 
       {/* Mobile sub-navigation bar */}
       <div className="lg:hidden bg-white border-b border-slate-200 px-3 py-2 flex items-center justify-center gap-4 overflow-x-auto scrollbar-none" id="portal-mobile-navigation">
-        <button
-          onClick={() => setRole('student')}
-          className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-            role === 'student' ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-2xs' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <GraduationCap className="h-3.5 w-3.5 shrink-0" />
-          <span>Вакансии</span>
-        </button>
-        {loggedCompanyId && (
+        {!loggedCompanyId && !isModeratorLoggedIn && (
+          <button
+            onClick={() => { setRole('student'); setRequestedTab('catalog'); }}
+            className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+              role === 'student' && studentActiveTab === 'catalog' ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-2xs' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+            <span>Вакансии</span>
+          </button>
+        )}
+        {!loggedStudentEmail && !isModeratorLoggedIn && (
           <button
             onClick={() => setRole('employer')}
             className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
@@ -502,7 +513,7 @@ export default function App() {
             <span>Работодателям</span>
           </button>
         )}
-        {isModeratorLoggedIn && (
+        {!loggedStudentEmail && !loggedCompanyId && (
           <button
             onClick={() => setRole('moderator')}
             className={`flex items-center gap-1 px-4 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
@@ -538,6 +549,9 @@ export default function App() {
               setAuthModalRole('student');
               setShowAuthModal(true);
             }}
+            requestedTab={requestedTab}
+            onTabHandled={() => setRequestedTab(null)}
+            onStudentActiveTabChange={setStudentActiveTab}
           />
         )}
 
@@ -665,7 +679,7 @@ export default function App() {
             {/* Student quick-click */}
             <button
               onClick={() => {
-                const matched = studentProfiles.find(s => s.email === 'zalupovnikolaj7@gmail.com') || studentProfiles[0];
+                const matched = studentProfiles.find(s => s.email === 'aleksey.ivanov@edu.ru') || studentProfiles[0];
                 handleLoginStudent(matched);
                 setRole('student');
               }}
@@ -673,7 +687,7 @@ export default function App() {
             >
               <div>
                 <span className="font-bold text-slate-800 text-[11px] block">Студент (ЭОС)</span>
-                <span className="text-[10px] text-slate-500 font-mono block">zalupovnikolaj7@gmail.com</span>
+                <span className="text-[10px] text-slate-500 font-mono block">aleksey.ivanov@edu.ru</span>
               </div>
               <span className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold text-[10px] shrink-0">
                 Вход
