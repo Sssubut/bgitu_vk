@@ -78,6 +78,16 @@ export default function StudentDashboard({
   const [subscribingInternships, setSubscribingInternships] = React.useState(true);
   const [subStatus, setSubStatus] = React.useState<'idle' | 'saved'>('idle');
 
+  // Sync state and handle logout redirection to catalog
+  React.useEffect(() => {
+    if (!studentProfile) {
+      setActiveTab('catalog');
+    } else {
+      setEditedPhone(studentProfile.phone);
+      setEditedResume(studentProfile.resumeText || '');
+    }
+  }, [studentProfile]);
+
   // Filter approved/active vacancies
   const activeVacancies = vacancies.filter(v => v.status === 'active');
 
@@ -143,11 +153,12 @@ export default function StudentDashboard({
   };
 
   const saveProfile = () => {
+    if (!studentProfile || !onUpdateProfile) return;
     onUpdateProfile({
       ...studentProfile,
       phone: editedPhone,
       resumeText: editedResume,
-      resumeFileName: uploadedFileName || studentProfile.resumeFileName
+      resumeFileName: uploadedFileName || studentProfile.resumeFileName || ''
     });
     setIsEditingProfile(false);
   };
@@ -623,23 +634,25 @@ export default function StudentDashboard({
                     <span className="text-xs font-semibold text-slate-400 block">Загруженный файл:</span>
                     <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 w-full">
                       <FileText className="h-4 w-4" />
-                      {studentProfile.resumeFileName || 'Резюме не прикреплено'}
+                      {studentProfile?.resumeFileName || 'Резюме не прикреплено'}
                     </span>
                   </div>
 
                   <div className="space-y-1">
                     <span className="text-xs font-semibold text-slate-400 block">Краткое резюме:</span>
                     <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-150 leading-relaxed max-h-40 overflow-y-auto">
-                      {studentProfile.resumeText || 'Ничего не заполнено.'}
+                      {studentProfile?.resumeText || 'Ничего не заполнено.'}
                     </p>
                   </div>
 
                   <button
                     id="edit-profile-btn"
                     onClick={() => {
-                      setEditedPhone(studentProfile.phone);
-                      setEditedResume(studentProfile.resumeText || '');
-                      setIsEditingProfile(true);
+                      if (studentProfile) {
+                        setEditedPhone(studentProfile.phone);
+                        setEditedResume(studentProfile.resumeText || '');
+                        setIsEditingProfile(true);
+                      }
                     }}
                     className="w-full text-xs border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/30 text-indigo-600 font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer"
                   >
@@ -656,7 +669,7 @@ export default function StudentDashboard({
                 Настройка подписки на новые вакансии
               </h3>
               <p className="text-[11px] text-slate-400">
-                Получайте рассылку на почту <strong className="text-slate-600">{studentProfile.email}</strong> по заданным критериям вуза.
+                Получайте рассылку на почту <strong className="text-slate-600">{studentProfile?.email || ''}</strong> по заданным критериям вуза.
               </p>
 
               <div className="space-y-2 pt-2">

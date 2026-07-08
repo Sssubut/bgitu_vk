@@ -373,7 +373,10 @@ export default function App() {
                   {studentProfile.name[0]}
                 </div>
                 <button
-                  onClick={() => setLoggedStudentEmail(null)}
+                  onClick={() => {
+                    setLoggedStudentEmail(null);
+                    setRole('student');
+                  }}
                   className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer ml-2 pl-3 border-l border-slate-200 font-sans"
                   id="header-logout-student-btn"
                 >
@@ -408,7 +411,10 @@ export default function App() {
                   {currentEmployerCompany.name[0]}
                 </div>
                 <button
-                  onClick={() => setLoggedCompanyId(null)}
+                  onClick={() => {
+                    setLoggedCompanyId(null);
+                    setRole('student');
+                  }}
                   className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer ml-2 pl-3 border-l border-slate-200 font-sans"
                   id="header-logout-employer-btn"
                 >
@@ -443,7 +449,10 @@ export default function App() {
                   M
                 </div>
                 <button
-                  onClick={() => setIsModeratorLoggedIn(false)}
+                  onClick={() => {
+                    setIsModeratorLoggedIn(false);
+                    setRole('student');
+                  }}
                   className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer ml-2 pl-3 border-l border-slate-200 font-sans"
                   id="header-logout-moderator-btn"
                 >
